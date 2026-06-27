@@ -1,0 +1,22 @@
+FROM python:3.12-slim-bookworm
+
+WORKDIR /app
+
+# System dependencies (PostgreSQL client, build tools)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy API source (Celery lives inside the same code base)
+COPY api/ ./api/
+
+# Install Python dependencies (includes Celery)
+WORKDIR /app/api
+RUN pip install --no-cache-dir -e .
+
+# Dummy expose (required by Render)
+EXPOSE 8000
+
+# Start Celery worker (will read broker URL from env vars)
+CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=info"]
